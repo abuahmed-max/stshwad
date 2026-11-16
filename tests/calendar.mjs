@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ts from 'typescript';
+const source=fs.readFileSync('app/calendar-model.ts','utf8').replace("'./challenge'","'../app/challenge.ts'");
+fs.writeFileSync('work/calendar-test-model.mjs',ts.transpile(source,{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}));
+const {calendarDays}=await import('../work/calendar-test-model.mjs');
+let d=calendarDays('2026-11-16','2026-11-20',['2026-11-16']);
+assert.equal(d.length,30);assert.equal(d[0].status,'done');assert.equal(d[1].status,'rest');assert.equal(d[2].status,'missed');assert.equal(d[4].status,'today');assert.equal(d[4].current,true);assert.equal(d[6].status,'upcoming');assert.equal(d[29].date,'2026-12-15');assert.equal(d.filter(x=>x.status==='rest').length,15);
+assert.equal(calendarDays(null,'2026-11-20',[]).filter(x=>x.status==='unset').length,30);
+d=calendarDays('2028-02-28','2028-03-01',[]);assert.equal(d[1].date,'2028-02-29');assert.equal(d[2].date,'2028-03-01');
+assert.equal(calendarDays('2026-11-16','2026-12-20',[]).filter(x=>x.current).length,0);
+console.log('Calendar: dates, leap year, rest, completion, past and future passed');
