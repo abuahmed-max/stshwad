@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {roster,exerciseDay,dayIndex,validValues,validPlayer} from '../app/challenge.ts';
+assert.equal(new Set(roster.map(p=>p.id)).size,12);
+assert.equal(validPlayer('unknown'),false);
+assert.equal(Array.from({length:30},(_,i)=>i).filter(exerciseDay).length,15);
+for(const d of [-1,1,29,30,32,NaN])assert.equal(exerciseDay(d),false);
+assert.equal(exerciseDay(28),true);
+assert.equal(dayIndex('2026-12-01','2026-11-16'),15);
+assert.equal(validValues(Array(8).fill(0)),true);
+for(const v of [null,[],Array(8).fill(-1),Array(8).fill(1.5),Array(8).fill('1'),Array(8).fill(86401)])assert.equal(validValues(v),false);
+console.log('Challenge boundary and validation tests passed');
