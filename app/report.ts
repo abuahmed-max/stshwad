@@ -1,0 +1,13 @@
+import ExcelJS from 'exceljs';
+import {roster} from './challenge';
+export async function createReport(data:any,month:string){
+ const wb=new ExcelJS.Workbook();wb.creator='ستشواد';wb.created=new Date();
+ const rows=data.sessions.filter((s:any)=>!month||s.day.slice(0,7)===month).sort((a:any,b:any)=>a.day.localeCompare(b.day)||a.user.localeCompare(b.user));
+ const totals=(rs:any[])=>rs.reduce((a:number[],r:any)=>{const v=JSON.parse(r.values);return a.map((n,i)=>n+v[i*2]+v[i*2+1])},[0,0,0,0]);
+ function sheet(name:string,headers:string[],records:any[][]){const s=wb.addWorksheet(name,{views:[{rightToLeft:true,state:'frozen',ySplit:3}]});s.addRow(['ستشواد — '+(month||'جميع الأشهر')]);s.mergeCells(1,1,1,headers.length);s.getRow(1).height=32;s.getCell('A1').font={bold:true,size:18,color:{argb:'FFD3FB62'}};s.getCell('A1').fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF17200F'}};s.addRow(['الثواني مستقلة عن العدات. يوم الإنجاز = نتيجة معتمدة في تاريخ واحد.']);s.mergeCells(2,1,2,headers.length);s.addRow(headers);s.getRow(3).height=32;s.getRow(3).eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF34441D'}};c.alignment={wrapText:true,vertical:'middle'}});for(const r of records)s.addRow(r);s.columns.forEach((c,i)=>c.width=i<2?24:21);s.autoFilter={from:{row:3,column:1},to:{row:Math.max(3,s.rowCount),column:headers.length}};for(let i=4;i<=s.rowCount;i++){s.getRow(i).height=25;s.getRow(i).eachCell(c=>{c.alignment={vertical:'middle',horizontal:'right'};if(i%2===0)c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF0F5E9'}}})}return s;}
+ sheet('ملخص الشباب',['الاسم','بداية التحدي','أيام التمرين','بلانك (ثانية)','ضغط (عدة)','أعلى البطن (عدة)','بطن شامل (عدة)'],roster.map(p=>{const rs=rows.filter((r:any)=>r.user===p.id);return [p.name,data.starts.find((s:any)=>s.id==='start:'+p.id)?.start||'لم يحدد',rs.length,...totals(rs)]}));
+ sheet('السجل الكامل',['التاريخ','الاسم','بلانك ج١ (ث)','بلانك ج٢ (ث)','ضغط ج١','ضغط ج٢','أعلى البطن ج١','أعلى البطن ج٢','بطن شامل ج١','بطن شامل ج٢'],rows.map((r:any)=>[new Date(r.day+'T00:00:00Z'),roster.find(p=>p.id===r.user)?.name||r.user,...JSON.parse(r.values)]));
+ const detail=wb.getWorksheet('السجل الكامل')!;detail.getColumn(1).numFmt='yyyy-mm-dd';
+ const months=[...new Set<string>(rows.map((r:any)=>r.day.slice(0,7)))].sort();sheet('الملخص الشهري',['الشهر','الاسم','أيام التمرين','بلانك (ثانية)','ضغط (عدة)','أعلى البطن (عدة)','بطن شامل (عدة)'],months.flatMap(m=>roster.map(p=>{const rs=rows.filter((r:any)=>r.user===p.id&&r.day.startsWith(m));return [m,p.name,rs.length,...totals(rs)]})));
+ return wb.xlsx.writeBuffer();
+}
